@@ -1,17 +1,6 @@
 var crypto = require('crypto');
-const { buildUnicomUserAgent } = require('../../../utils/util')
-
-var sign = (data) => {
-  let str = 'integralofficial&'
-  let params = []
-  data.forEach((v, i) => {
-    if (v) {
-      params.push('arguments' + (i + 1) + v)
-    }
-  });
-  return crypto.createHash('md5').update(str + params.join('&')).digest('hex')
-}
-
+const { buildUnicomUserAgent, appInfo } = require('../../../utils/device')
+const { signRewardVideoParams } = require('./CryptoUtil')
 var transParams = (data) => {
   let params = new URLSearchParams();
   for (let item in data) {
@@ -46,7 +35,7 @@ var woTree = {
         }
         return data
       }
-    }).catch(err => console.log(err))
+    }).catch(err => console.error(err))
 
     let jar = result.config.jar
     let cookiesJson = jar.toJSON()
@@ -77,7 +66,7 @@ var woTree = {
       }).then(res => {
         let result = res.data
         if (result.code !== '0000') {
-          console.log(result.msg)
+          console.info(result.msg)
         } else {
           resolve(result.data)
         }
@@ -100,9 +89,10 @@ var woTree = {
         method: 'post'
       })
       if (data.code !== '0000') {
-        console.log(data.msg)
+        console.info(data.msg)
       } else {
-        console.log('领取流量+', flow.countTransFlowStr, 'M成功')
+        console.reward('flow', flow.countTransFlowStr)
+        console.info('领取流量+', flow.countTransFlowStr, 'M成功')
       }
     }
   },
@@ -121,9 +111,10 @@ var woTree = {
         method: 'post'
       })
       if (data.code !== '0000') {
-        console.log(data.msg)
+        console.info(data.msg)
       } else {
-        console.log('领取话费+', data.data.addedValue)
+        console.reward('pop', data.data.addedValue)
+        console.info('领取话费+', data.data.addedValue)
       }
     }
   },
@@ -143,19 +134,19 @@ var woTree = {
     })
 
     if (data.code !== '0000') {
-      console.log('查询浇水机会失败')
+      console.error('查询浇水机会失败')
       return
     }
 
     if (data.data.chance_0 === 0) {
-      console.log('暂无浇水机会，跳过')
+      console.info('暂无浇水机会，跳过')
       return
     }
 
     let num = 2
     do {
       if (num < 2) {
-        console.log('看视频浇水')
+        console.info('看视频浇水')
         let params = {
           'arguments1': '',
           'arguments2': '',
@@ -168,10 +159,10 @@ var woTree = {
           'netWay': 'Wifi',
           'remark1': '沃之树看视频得浇水机会',
           'remark': '',
-          'version': `android@8.0100`,
-          'codeId': 945535626
+          'version': appInfo.unicom_version,
+          'codeId': 945413733
         }
-        params['sign'] = sign([params.arguments1, params.arguments2, params.arguments3, params.arguments4])
+        params['sign'] = signRewardVideoParams([params.arguments1, params.arguments2, params.arguments3, params.arguments4])
         let result = await require('./taskcallback').reward(axios, {
           ...options,
           params,
@@ -183,13 +174,13 @@ var woTree = {
             "referer": `https://img.client.10010.com/`,
             "origin": "https://img.client.10010.com",
           },
-          url: `https://m.client.10010.com/mactivity/arbordayJson/giveGrowChance.htm`,
+          url: `https://m.client.10010.com/mactivity/arbordayJson/giveGrowChance.htm?videoId=` + result.orderId,
           method: 'POST',
           data: transParams({
             "{}": ""
           })
         })
-        console.log(result.data.msg)
+        console.info(result.data.msg)
       }
       let res = await axios.request({
         headers: {
@@ -205,12 +196,12 @@ var woTree = {
       })
       let result = res.data
       if (result.code !== '0000') {
-        console.log('浇水失败', result.msg)
+        console.error('浇水失败', result.msg)
       } else {
         if (result.data.addedValue) {
-          console.log('浇水成功', '培养值+' + result.data.addedValue)
+          console.info('浇水成功', '培养值+' + result.data.addedValue)
         } else {
-          console.log('浇水操作完成')
+          console.info('浇水操作完成')
         }
       }
     } while (--num)
