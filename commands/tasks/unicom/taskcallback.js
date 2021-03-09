@@ -1,4 +1,6 @@
 var crypto = require('crypto');
+const { appInfo, buildUnicomUserAgent } = require('../../../utils/device')
+
 var transParams = (data) => {
     let params = new URLSearchParams();
     for (let item in data) {
@@ -9,7 +11,7 @@ var transParams = (data) => {
 
 //data 是准备加密的字符串,key是你的密钥
 
-function encryption (data, key) {
+function encryption(data, key) {
     var iv = "";
     var cipherEncoding = 'base64';
     var cipher = crypto.createCipheriv('aes-128-ecb', key, iv);
@@ -18,7 +20,7 @@ function encryption (data, key) {
 }
 
 //data 是你的准备解密的字符串,key是你的密钥
-function decryption (data, key) {
+function decryption(data, key) {
     var iv = "";
     var clearEncoding = 'utf8';
     var cipherEncoding = 'base64';
@@ -27,7 +29,7 @@ function decryption (data, key) {
     return Buffer.concat([decipher.update(data, cipherEncoding), decipher.final()]).toString(clearEncoding);
 }
 
-function a (str) {
+function a(str) {
     str = str + str
     return str.substr(8, 16)
 }
@@ -50,14 +52,22 @@ var taskcallback = {
             data: transParams(params)
         })
         if (data.code === '0000') {
-            console.log(data.timeflag === '1' ? `今日参加活动已达上限(${data.achieve}/${data.allocation}次)` : `活动可参加(${data.achieve}/${data.allocation}次)`)
+            console.info(data.timeflag === '1' ? `今日参加活动已达上限(${data.achieve}/${data.allocation}次)` : `活动可参加(${data.achieve}/${data.allocation}次)`)
+            let num = parseInt(data.allocation) - parseInt(data.achieve)
+            if (num > 0) {
+                console.info('预计获得', data.prizeName, `${data.fixNum || 0}*${num} 共`, (data.fixNum || 0) * num)
+            }
             return {
-                num: parseInt(data.allocation) - parseInt(data.achieve),
+                num,
+                fixNum: (data.fixNum || 0),
                 jar: config.jar
             }
         } else {
-            console.log('查询出错', data.desc)
-            return false
+            console.info('查询出错', data.desc)
+            return {
+                num: 0,
+                jar: config.jar
+            }
         }
     },
     reward: async (axios, options) => {
@@ -115,7 +125,7 @@ var taskcallback = {
                 // "client_ip": "111.121.67.62",
                 // "open_udid": "",
                 // "os_type": null,
-                // "app_name": "手机营业厅",
+                "app_name": appInfo.app_name,
                 // "device_type": "VKY-AL00",
                 // "os_version": "9",
                 // "app_id": "5049584",
@@ -128,8 +138,8 @@ var taskcallback = {
                 // "pack_time": "{pack_time}",
                 // "cid": 1687493310795863,
                 // "interaction_type": 4,
-                // "src_type": "app",
-                // "package_name": "com.sinovatech.unicom.ui",
+                "src_type": "app",
+                "package_name": appInfo.package_name,
                 // "pos": 5,
                 // "landing_type": 3,
                 // "is_sdk": true,
@@ -157,7 +167,7 @@ var taskcallback = {
             cypher: 2
         }
         // let s = a(message.message.substr(1, 16))
-        // console.log(decryption(message.message.replace(/\n/g, '').substr(17), s))
+        // console.info(decryption(message.message.replace(/\n/g, '').substr(17), s))
         // process.exit(0)
 
         const useragent = `VADNetAgent/0`
@@ -172,7 +182,7 @@ var taskcallback = {
         })
         data = res.data
         // s = a(data.message.substr(1, 16))
-        // console.log(decryption(data.message.replace(/\n/g, '').substr(17), s))
+        // console.info(decryption(data.message.replace(/\n/g, '').substr(17), s))
         if ('code' in data) {
             throw new Error('获取激励信息出错')
         }
@@ -201,10 +211,15 @@ var taskcallback = {
             data: transParams(params)
         })
         if (data.code === '0000') {
-            console.log('提交任务成功', data.prizeName + '+' + data.prizeCount)
+            console.reward('integral', data.prizeCount)
+            console.info('提交任务成功', data.prizeName + '+' + data.prizeCount)
         } else {
-            console.log('提交任务出错', data.desc)
+            console.info('提交任务出错', data.desc)
         }
+    },
+    // 提交任务
+    doReward: async (axios, options) => {
+        return await taskcallback.reward(axios, options)
     },
 }
 module.exports = taskcallback

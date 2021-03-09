@@ -26,13 +26,13 @@ var loadSign = async (axios, url) => {
 module.exports = async (axios) => {
   let msg = await loadSign(axios, 'https://www.52pojie.cn/home.php?mod=task&do=apply&id=2')
   if (msg.indexOf('需要先登录才能继续本操作') !== -1) {
-    console.log("需要先登录才能继续本操作,跳过本期任务")
+    console.info("需要先登录才能继续本操作,跳过本期任务")
     return
   }
   if (msg.indexOf('本期您已申请过此任务') !== -1) {
-    console.log("本期您已申请过此任务,跳过本期任务")
+    console.info("本期您已申请过此任务,跳过本期任务")
     return
   }
   msg = await loadSign(axios, 'https://www.52pojie.cn/home.php?mod=task&do=draw&id=2')
-  console.log("52pojie签到：", msg)
+  console.info("52pojie签到：", msg)
 }

@@ -1,5 +1,6 @@
 var crypto = require('crypto');
-
+const { appInfo, buildUnicomUserAgent } = require('../../../utils/device')
+const { signRewardVideoParams } = require('./CryptoUtil')
 // 疯狂刮刮乐
 var transParams = (data) => {
   let params = new URLSearchParams();
@@ -8,7 +9,7 @@ var transParams = (data) => {
   }
   return params;
 };
-function w () {
+function w() {
   var e = arguments.length > 0 && void 0 !== arguments[0] ? arguments[0] : {}
     , t = [];
   return Object.keys(e).forEach((function (a) {
@@ -17,18 +18,8 @@ function w () {
   )),
     t.join("&")
 }
-var sign = (data) => {
-  let str = 'integralofficial&'
-  let params = []
-  data.forEach((v, i) => {
-    if (v) {
-      params.push('arguments' + (i + 1) + v)
-    }
-  });
-  return crypto.createHash('md5').update(str + params.join('&')).digest('hex')
-}
 
-function encryption (data, key) {
+function encryption(data, key) {
   var iv = "";
   var cipherEncoding = 'base64';
   var cipher = crypto.createCipheriv('aes-128-ecb', key, iv);
@@ -39,7 +30,7 @@ function encryption (data, key) {
 var dailyVideoScratchcard = {
   getGoodsList: async (axios, options) => {
     let phone = encryption(options.user, 'gb6YCccUvth75Tm2')
-    const useragent = `Mozilla/5.0 (Linux; Android 7.1.2; SM-G977N Build/LMY48Z; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/75.0.3770.143 Mobile Safari/537.36; unicom{version:android@8.0100,desmobile:${options.user}};devicetype{deviceBrand:samsung,deviceModel:SM-G977N};{yw_code:}    `
+    const useragent = buildUnicomUserAgent(options, 'p')
     let result = await axios.request({
       headers: {
         "user-agent": useragent,
@@ -58,8 +49,7 @@ var dailyVideoScratchcard = {
     return result.data.data.allCards.filter(c => !c.status)
   },
   doTask: async (axios, options) => {
-
-    const useragent = `Mozilla/5.0 (Linux; Android 7.1.2; SM-G977N Build/LMY48Z; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/75.0.3770.143 Mobile Safari/537.36; unicom{version:android@8.0100,desmobile:${options.user}};devicetype{deviceBrand:samsung,deviceModel:SM-G977N};{yw_code:}`
+    const useragent = buildUnicomUserAgent(options, 'p')
     let searchParams = {}
     let result = await axios.request({
       baseURL: 'https://m.client.10010.com/',
@@ -83,7 +73,7 @@ var dailyVideoScratchcard = {
         }
         return data
       }
-    }).catch(err => console.log(err))
+    }).catch(err => console.error(err))
 
     let jar1 = result.config.jar
 
@@ -113,14 +103,14 @@ var dailyVideoScratchcard = {
       'arguments9': '',
       'netWay': 'Wifi',
       'remark': '签到小游戏幸运刮刮卡',
-      'version': `android@8.0100`,
+      'version': appInfo.unicom_version,
       'codeId': 945597731
     }
-    params['sign'] = sign([params.arguments1, params.arguments2, params.arguments3, params.arguments4])
+    params['sign'] = signRewardVideoParams([params.arguments1, params.arguments2, params.arguments3, params.arguments4])
 
     if (goods.length) {
       for (let good of goods) {
-        console.log('开始处理', good.name)
+        console.info('开始处理', good.name)
         params['orderId'] = crypto.createHash('md5').update(new Date().getTime() + '').digest('hex')
         params['arguments4'] = new Date().getTime()
 
@@ -146,15 +136,16 @@ var dailyVideoScratchcard = {
           method: 'GET'
         })
         if (result.data.code !== 200) {
-          console.log(result.data.msg)
+          console.info(result.data.msg)
         } else {
-          console.log('提交任务成功', `+${result.data.data.prizeType ? result.data.data.integral : 0}`)
+          console.reward('integral', result.data.data.prizeType ? result.data.data.integral : 0)
+          console.info('提交任务成功', `+${result.data.data.prizeType ? result.data.data.integral : 0}`)
         }
-        console.log('等待15秒再继续')
+        console.info('等待15秒再继续')
         await new Promise((resolve, reject) => setTimeout(resolve, 15 * 1000))
       }
     } else {
-      console.log('暂无可刮得商品')
+      console.info('暂无可刮得商品')
     }
   }
 }

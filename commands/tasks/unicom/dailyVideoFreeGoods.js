@@ -1,6 +1,7 @@
 var crypto = require('crypto');
 var moment = require('moment');
-
+const { appInfo, buildUnicomUserAgent } = require('../../../utils/device')
+const { signRewardVideoParams } = require('./CryptoUtil')
 // 签到小游戏买什么都省免费夺宝
 var transParams = (data) => {
   let params = new URLSearchParams();
@@ -9,17 +10,6 @@ var transParams = (data) => {
   }
   return params;
 };
-
-var sign = (data) => {
-  let str = 'integralofficial&'
-  let params = []
-  data.forEach((v, i) => {
-    if (v) {
-      params.push('arguments' + (i + 1) + v)
-    }
-  });
-  return crypto.createHash('md5').update(str + params.join('&')).digest('hex')
-}
 
 function encryption (data, key) {
   var iv = "";
@@ -33,7 +23,7 @@ var dailyVideoFreeGoods = {
   getGoodsList: async (axios, options) => {
     const { token } = options
     let phone = encryption(options.user, 'gb6YCccUvth75Tm2')
-    const useragent = `Mozilla/5.0 (Linux; Android 7.1.2; SM-G977N Build/LMY48Z; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/75.0.3770.143 Mobile Safari/537.36; unicom{version:android@8.0100,desmobile:${options.user}};devicetype{deviceBrand:samsung,deviceModel:SM-G977N};{yw_code:}    `
+    const useragent = buildUnicomUserAgent(options, 'p')
     let res = await axios.request({
       headers: {
         "user-agent": useragent,
@@ -64,7 +54,7 @@ var dailyVideoFreeGoods = {
     }
   },
   doTask: async (axios, options) => {
-    const useragent = `Mozilla/5.0 (Linux; Android 7.1.2; SM-G977N Build/LMY48Z; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/75.0.3770.143 Mobile Safari/537.36; unicom{version:android@8.0100,desmobile:${options.user}};devicetype{deviceBrand:samsung,deviceModel:SM-G977N};{yw_code:}`
+    const useragent = buildUnicomUserAgent(options, 'p')
     let searchParams = {}
     let result = await axios.request({
       baseURL: 'https://m.client.10010.com/',
@@ -88,7 +78,7 @@ var dailyVideoFreeGoods = {
         }
         return data
       }
-    }).catch(err => console.log(err))
+    }).catch(err => console.error(err))
 
     let jar1 = result.config.jar
     let cookiesJson = jar1.toJSON()
@@ -101,11 +91,11 @@ var dailyVideoFreeGoods = {
       ...options,
       token: ecs_token
     })
-    console.log('签到小游戏买什么都省免费夺宝', `剩余机会(${leftTimes}/${freeTimes})`)
+    console.info('签到小游戏买什么都省免费夺宝', `剩余机会(${leftTimes}/${freeTimes})`)
 
     if (!leftTimes) {
       if (time) {
-        console.log(`签到小游戏买什么都省免费夺宝: 剩余机会不足，等待下一轮,` + moment().add(time, 'seconds').format('YYYY-MM-DD HH:mm:ss') + ' 后可再次尝试')
+        console.info(`签到小游戏买什么都省免费夺宝: 剩余机会不足，等待下一轮,` + moment().add(time, 'seconds').format('YYYY-MM-DD HH:mm:ss') + ' 后可再次尝试')
       }
     }
 
@@ -120,17 +110,17 @@ var dailyVideoFreeGoods = {
       'arguments9': '',
       'netWay': 'Wifi',
       'remark': '签到小游戏买什么都省免费夺宝',
-      'version': `android@8.0100`,
+      'version': appInfo.unicom_version,
       'codeId': 945535689
     }
-    params['sign'] = sign([params.arguments1, params.arguments2, params.arguments3, params.arguments4])
+    params['sign'] = signRewardVideoParams([params.arguments1, params.arguments2, params.arguments3, params.arguments4])
 
     let phone = encryption(options.user, 'gb6YCccUvth75Tm2')
 
     // 同一期商品最多3次机会，每4小时可获得5次机会
     for (let good of goods) {
 
-      console.log('开始处理', good.goodsName)
+      console.info('开始处理', good.goodsName)
       params['orderId'] = crypto.createHash('md5').update(new Date().getTime() + '').digest('hex')
       params['arguments4'] = new Date().getTime()
 
@@ -146,7 +136,7 @@ var dailyVideoFreeGoods = {
         baseURL: 'https://m.client.10010.com/',
         headers: {
           "user-agent": useragent,
-          "referer": `https://wxapp.msmds.cn/h5/react_web/unicom/freeTakeGoodDetail/${good.id}?source=unicom&type=02&ticket=${searchParams.ticket}&version=android@8.0100&timestamp=${timestamp}&desmobile=${options.user}&num=0&postage=${searchParams.postage}&userNumber=${options.user}        `,
+          "referer": `https://wxapp.msmds.cn/h5/react_web/unicom/freeTakeGoodDetail/${good.id}?source=unicom&type=02&ticket=${searchParams.ticket}&version=${appInfo.unicom_version}&timestamp=${timestamp}&desmobile=${options.user}&num=0&postage=${searchParams.postage}&userNumber=${options.user}        `,
           "origin": "https://wxapp.msmds.cn"
         },
         url: `https://wxapp.msmds.cn/jplus/api/channel/integral/free/goods/getTimes`,
@@ -155,7 +145,7 @@ var dailyVideoFreeGoods = {
       })
 
       if (result.data.data.time) {
-        console.log(`已处于限制期，` + moment().add(result.data.data.time, 'seconds').format('YYYY-MM-DD HH:mm:ss') + ' 后可再次尝试，跳过')
+        console.info(`已处于限制期，` + moment().add(result.data.data.time, 'seconds').format('YYYY-MM-DD HH:mm:ss') + ' 后可再次尝试，跳过')
         break
       }
 
@@ -169,7 +159,7 @@ var dailyVideoFreeGoods = {
       result = await axios.request({
         headers: {
           "user-agent": useragent,
-          "referer": `https://wxapp.msmds.cn/h5/react_web/unicom/freeTakeGoodDetail/${good.id}?source=unicom&type=02&ticket=${searchParams.ticket}&version=android@8.0100&timestamp=${timestamp}&desmobile=${options.user}&num=0&postage=${searchParams.postage}&userNumber=${options.user}`,
+          "referer": `https://wxapp.msmds.cn/h5/react_web/unicom/freeTakeGoodDetail/${good.id}?source=unicom&type=02&ticket=${searchParams.ticket}&version=${appInfo.unicom_version}&timestamp=${timestamp}&desmobile=${options.user}&num=0&postage=${searchParams.postage}&userNumber=${options.user}`,
           "origin": "https://wxapp.msmds.cn"
         },
         url: `https://wxapp.msmds.cn/jplus/api/channel/integral/free/goods/doFreeGoods`,
@@ -187,17 +177,17 @@ var dailyVideoFreeGoods = {
         })
       })
       if (result.data.code !== 2000) {
-        console.log(result.data.msg)
+        console.info(result.data.msg)
       } else {
         if (result.data.data.luckCode) {
-          console.log('提交任务成功', `券码：${result.data.data.luckCode}`)
+          console.info('提交任务成功', `券码：${result.data.data.luckCode}`)
         } else if (result.data.data.time) {
           throw new Error(`已处于限制期，` + moment().add(result.data.data.time, 'seconds').format('YYYY-MM-DD HH:mm:ss') + ' 后可再次尝试')
         } else {
-          console.log('提交任务成功')
+          console.info('提交任务成功')
         }
       }
-      console.log('等待25秒再继续')
+      console.info('等待25秒再继续')
       await new Promise((resolve, reject) => setTimeout(resolve, 25 * 1000))
     }
   }

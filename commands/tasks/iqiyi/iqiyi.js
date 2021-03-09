@@ -51,7 +51,7 @@ var start = async (params) => {
         await require('./signVip').vipSign(request)
       }
     } else {
-      console.log('非vip会员跳过vip签到任务')
+      console.info('非vip会员跳过vip签到任务')
     }
   }, taskOption)
 
@@ -61,7 +61,7 @@ var start = async (params) => {
     if (userinfo.vipInfo.status === '1') {
       await require('./dailyBrowserClub')(request)
     } else {
-      console.log('非vip会员跳过浏览会员俱乐部任务')
+      console.info('非vip会员跳过浏览会员俱乐部任务')
     }
   }, taskOption)
 
@@ -71,7 +71,7 @@ var start = async (params) => {
     if (userinfo.vipInfo.status === '1') {
       await require('./dailyFeed')(request)
     } else {
-      console.log('非vip会员跳过访问热点首页')
+      console.info('非vip会员跳过访问热点首页')
     }
   }, taskOption)
 
@@ -81,7 +81,7 @@ var start = async (params) => {
     if (userinfo.vipInfo.status === '1') {
       // await require('./dailyWatchVideo').reportPlayTime(request)
     } else {
-      console.log('非vip会员跳过每日观看视频30分钟3次')
+      console.info('非vip会员跳过每日观看视频30分钟3次')
     }
   }, taskOption)
 

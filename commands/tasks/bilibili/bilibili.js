@@ -26,7 +26,7 @@ var start = async (params) => {
     if (!dailyTaskStatus.watch || !dailyTaskStatus.share) {
       await require('./watchAndShareVideo')(request, dailyTaskStatus)
     } else {
-      console.log('每日观看分享视频已完成')
+      console.info('每日观看分享视频已完成')
     }
   }, taskOption)
 
@@ -36,7 +36,7 @@ var start = async (params) => {
     if (!dailyTaskStatus.coins) {
       await require('./AddCoinsForVideo')(request, options)
     } else {
-      console.log('每日视频投币已完成')
+      console.info('每日视频投币已完成')
     }
   }, taskOption)
 
@@ -51,7 +51,7 @@ var start = async (params) => {
     if (!SignInfo.status) {
       await require('./LiveSign')(request)
     } else {
-      console.log('今日已进行直播签到')
+      console.info('今日已进行直播签到')
     }
   }, taskOption)
 
@@ -61,7 +61,7 @@ var start = async (params) => {
     if (WalletInfo.silver >= 700) {
       await require('./ExchangeSilver2Coin')(request)
     } else {
-      console.log('银瓜子不足700无法兑换为硬币')
+      console.info('银瓜子不足700无法兑换为硬币')
     }
   }, taskOption)
 
